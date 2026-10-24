@@ -1,0 +1,48 @@
+# Sobe tudo com:  docker compose up -d --build
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: notas
+      POSTGRES_USER: notas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notas -d notas"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://notas:${POSTGRES_PASSWORD}@db:5432/notas?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?defina ADMIN_PASSWORD no .env}
+      TEACHER_USERNAME: ${TEACHER_USERNAME:-Brunog}
+      TEACHER_PASSWORD: ${TEACHER_PASSWORD:-resultadosbimestre}
+      TEACHER_NAME: ${TEACHER_NAME:-Prof. Bruno Gomes}
+      MAX_TOTAL: ${MAX_TOTAL:-10}
+    healthcheck:
+      test: ["CMD", "/server", "healthcheck"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+
+volumes:
+  pgdata:

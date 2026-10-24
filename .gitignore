@@ -1,0 +1,4 @@
+.env
+# Planilhas reais têm nomes de alunos menores de idade: nunca versionar.
+*.xlsx
+docs/*.xlsx
